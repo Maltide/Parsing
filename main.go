@@ -27,37 +27,8 @@ func main() {
 	var zhdem sync.WaitGroup
 	pages := make(chan int)
 	results := make(chan string, 100)
-	zhdem.Add(20)
-	go func() {
-		defer zhdem.Done()
-		for i := 1; ; i++ {
-			url := "https://career.habr.com/vacancies?page=" + strconv.Itoa(i)
-			resp, err := http.Get(url)
-			if err != nil {
-				log.Println("Ошибка при получении страницы:", i)
-				break
-			}
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-
-			doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-			if err != nil {
-				log.Println("Ошибка парсинга страницы:", i)
-				break
-			}
-
-			if doc.Find(".vacancy-card__info").Length() == 0 {
-				fmt.Println("Страницы закончились на:", i)
-				break
-			}
-
-			pages <- i
-		}
-		close(pages)
-	}()
-
 	for w := 0; w < 20; w++ {
-		defer zhdem.Add(20)
+		zhdem.Add(1)
 		go func() {
 			zhdem.Done()
 			for page := range pages {
@@ -109,6 +80,12 @@ func main() {
 			}
 		}()
 	}
+
+	for i := 1; i <= 100; i++ {
+		pages <- i
+		//time.Sleep(1 * time.Second)
+	}
+	close(pages)
 	zhdem.Wait()
 	close(results)
 	for r := range results {
