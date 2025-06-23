@@ -27,7 +27,9 @@ func main() {
 	var zhdem sync.WaitGroup
 	pages := make(chan int)
 	results := make(chan string, 100)
+	zhdem.Add(20)
 	go func() {
+		defer zhdem.Done()
 		for i := 1; ; i++ {
 			url := "https://career.habr.com/vacancies?page=" + strconv.Itoa(i)
 			resp, err := http.Get(url)
@@ -55,7 +57,7 @@ func main() {
 	}()
 
 	for w := 0; w < 20; w++ {
-		zhdem.Add(1)
+		defer zhdem.Add(20)
 		go func() {
 			zhdem.Done()
 			for page := range pages {
@@ -107,7 +109,6 @@ func main() {
 			}
 		}()
 	}
-
 	zhdem.Wait()
 	close(results)
 	for r := range results {
